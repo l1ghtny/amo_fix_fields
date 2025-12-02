@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from starlette.status import HTTP_200_OK
 
 from api import add_info_from_ms, get_lead_by_id
-from help_function import parse_the_cart_field, get_nested
+from help_function import parse_the_cart_field, get_nested, get_custom_field_value, normalize_text
 
 app = FastAPI()
 
@@ -34,15 +34,12 @@ async def lead_change(request: Request):
     delivery_type = None
     delivery_address = None
 
-    lead_id = get_nested(nested, ["leads", "update", "0", "id"])
+    lead_id = await get_nested(nested, ["leads", "update", "0", "id"])
     if lead_id is None:
-        lead_id = get_nested(nested, ["leads", "add", "0", "id"])
-
-    print(f'LEAD_ID {lead_id}')
+        lead_id = await get_nested(nested, ["leads", "add", "0", "id"])
 
     if lead_id == '36334989':
-        print('lead_id = 36334989')
-        updates = get_nested(nested, ["leads", "update", "0", "custom_fields"])
+        updates = await get_nested(nested, ["leads", "update", "0", "custom_fields"])
         for updated_field in updates:
             info = updates[updated_field]
             if info['id'] == '576703':
@@ -52,13 +49,20 @@ async def lead_change(request: Request):
                 delivery_address = info["values"]['0']['value']
         # check if info is already correct
         current_info = await get_lead_by_id(lead_id)
-        current_goods = get_nested(current_info, ["leads", "0", "custom_fields", "577313", "values"])
-        current_delivery_type = get_nested(current_info, ["leads", "0", "custom_fields", "577315", "values"])
-        current_delivery_address = get_nested(current_info, ["leads", "0", "custom_fields", "577311", "values"])
-        if current_goods == goods and current_delivery_type == delivery_type and current_delivery_address == delivery_address:
+        current_goods = await get_custom_field_value(current_info, 577313)
+        current_delivery_type = await get_custom_field_value(current_info, 577315)
+        current_delivery_address = await get_custom_field_value(current_info, 577311)
+
+        ## matching ignoring the spaces
+        is_goods_match = await normalize_text(current_goods) == await normalize_text(goods)
+        is_delivery_match = await normalize_text(current_delivery_type) == await normalize_text(delivery_type)
+        is_address_match = await normalize_text(current_delivery_address) == await normalize_text(delivery_address)
+
+        if is_goods_match and is_delivery_match and is_address_match:
+            print("MATCH: Data is identical (ignoring whitespace).")
             return HTTP_200_OK
         else:
             await add_info_from_ms(goods=goods, delivery_type=delivery_type, delivery_address=delivery_address, lead_id=lead_id)
-
+            print("MISMATCH: Updating info...")
             return HTTP_200_OK
     return HTTP_200_OK

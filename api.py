@@ -17,8 +17,6 @@ headers = {
  }
 
 async def auth():
-    print(integration_id)
-    print(secret_key)
     body = {
         'client_id': integration_id,
         'client_secret': secret_key,
@@ -28,13 +26,11 @@ async def auth():
     }
     async with httpx.AsyncClient() as client:
         response = (await client.post('https://new5a2e8ea7b16b4.amocrm.ru/oauth2/access_token', data=body)).json()
-        pprint(response)
 
 
 async def get_lead_by_id(lead_id):
     async with httpx.AsyncClient() as client:
-        response = (await client.get(f'https://new5a2e8ea7b16b4.amocrm.ru/api/v4/leads', headers=headers)).json()
-        pprint(response)
+        response = (await client.get(f'https://new5a2e8ea7b16b4.amocrm.ru/api/v4/leads/{lead_id}', headers=headers)).json()
         return response
 
 

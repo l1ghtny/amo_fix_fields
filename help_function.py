@@ -31,7 +31,7 @@ async def parse_the_cart_field(data: str):
 
 _MISSING = object()
 
-def get_nested(data: Any, path: Iterable[str], default: Any = None) -> Any:
+async def get_nested(data: Any, path: Iterable[str], default: Any = None) -> Any:
     """
     Safely get nested values from dicts/lists using a path of keys/indexes.
     Example:
@@ -56,3 +56,39 @@ def get_nested(data: Any, path: Iterable[str], default: Any = None) -> Any:
             return default
 
     return current
+
+
+async def get_custom_field_value(data: dict, field_id: int, default: Any = None) -> Any:
+    """
+    Finds a specific custom field by its ID and returns its value.
+    """
+    # 1. Safely get the list of all custom fields
+    fields_list = await get_nested(data, ['custom_fields_values'], [])
+
+    if not isinstance(fields_list, list):
+        return default
+
+    # 2. Iterate through the list to find the matching field_id
+    # We use a generator expression with next() for efficiency
+    target_field = next(
+        (field for field in fields_list if field.get('field_id') == field_id),
+        None
+    )
+
+    # 3. If the field is found, extract the value safely
+    if target_field:
+        # Custom fields usually store data in ['values'][0]['value']
+        return await get_nested(target_field, ['values', '0', 'value'], default)
+
+    return default
+
+
+async def normalize_text(text: str) -> str:
+    """
+    Removes all whitespace (spaces, tabs, newlines) from the text
+    to allow for 'content-only' comparison.
+    """
+    if not text:
+        return ""
+    # Replace all whitespace characters ( \t\n\r\f\v) with an empty string
+    return re.sub(r'\s+', '', str(text))
