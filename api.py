@@ -33,7 +33,8 @@ async def auth():
 
 async def get_lead_by_id(lead_id):
     async with httpx.AsyncClient() as client:
-        response = (await client.get(f'https://new5a2e8ea7b16b4.amocrm.ru/api/v4/leads/custom_fields', headers=headers)).json()
+        response = (await client.get(f'https://new5a2e8ea7b16b4.amocrm.ru/api/v4/leads', headers=headers)).json()
+        pprint(response)
         return response
 
 
@@ -55,7 +56,7 @@ async def add_info_from_ms(goods, delivery_type, delivery_address, lead_id):
         'custom_fields_values': custom_fields
     }
     async with httpx.AsyncClient() as client:
-        response = await client.patch(f'https://new5a2e8ea7b16b4.amocrm.ru/api/v4/leads/{lead_id}', headers=headers, data=body)
+        response = await client.patch(f'https://new5a2e8ea7b16b4.amocrm.ru/api/v4/leads/{lead_id}', headers=headers, json=body)
         print(f'RESPONSE: {response}', f'RESPONSE JSON: {response.json()}')
 
 
@@ -74,7 +75,7 @@ async def create_custom_field(value, id):
 
 if __name__ == '__main__':
     import asyncio
-    asyncio.run(get_lead_by_id(36324369))
+    asyncio.run(get_lead_by_id(36334989))
     # asyncio.run(auth())
 
 

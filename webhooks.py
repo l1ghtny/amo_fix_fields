@@ -27,17 +27,6 @@ async def lead_change(request: Request):
         # 'leads[update][0][id]' -> ['leads', 'update', '0', 'id']
         keys = re.findall(r'([^\[\]]+)', raw_key)
         insert_nested(nested, keys, value)
-    try:
-        updates = nested['leads']['update']['0']['custom_fields']
-        for updated_field in updates:
-            info = updates[updated_field]
-            # if info['id'] == '576703':
-            #     print('Состав заказа Changed')
-            # else:
-            #     print('Состав заказа не Changed  || ', f'changed field : {info["name"]}  || ', f'new value : {info["values"]['0']['value']}')
-
-    except:
-        print('No custom fields')
 
     ## parsing the specific lead_id
 
@@ -59,7 +48,6 @@ async def lead_change(request: Request):
             if info['id'] == '576703':
                 order_summary = info["values"]['0']['value']
                 goods, delivery_type = await parse_the_cart_field(order_summary)
-                print(order_summary)
             if info['id'] == '576665':
                 delivery_address = info["values"]['0']['value']
         # check if info is already correct
@@ -73,3 +61,4 @@ async def lead_change(request: Request):
             await add_info_from_ms(goods=goods, delivery_type=delivery_type, delivery_address=delivery_address, lead_id=lead_id)
 
             return HTTP_200_OK
+    return HTTP_200_OK
