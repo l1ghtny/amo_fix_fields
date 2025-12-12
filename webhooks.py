@@ -1,4 +1,5 @@
-﻿import re
+﻿import logging
+import re
 from pprint import pprint
 
 from fastapi import FastAPI, Request
@@ -9,7 +10,7 @@ from help_function import parse_the_cart_field, get_nested, get_custom_field_val
 
 app = FastAPI()
 
-logger = get_logger("uvicorn")
+logger = logging.getLogger("uvicorn")
 
 
 def insert_nested(data, keys, value):
