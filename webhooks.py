@@ -9,6 +9,8 @@ from help_function import parse_the_cart_field, get_nested, get_custom_field_val
 
 app = FastAPI()
 
+logger = get_logger("uvicorn")
+
 
 def insert_nested(data, keys, value):
     cur = data
@@ -38,31 +40,37 @@ async def lead_change(request: Request):
     if lead_id is None:
         lead_id = await get_nested(nested, ["leads", "add", "0", "id"])
 
-    if lead_id == '36334989':
-        updates = await get_nested(nested, ["leads", "update", "0", "custom_fields"])
+    updates = await get_nested(nested, ["leads", "update", "0", "custom_fields"])
+
+    if updates:
         for updated_field in updates:
             info = updates[updated_field]
             if info['id'] == '576703':
                 order_summary = info["values"]['0']['value']
                 goods, delivery_type = await parse_the_cart_field(order_summary)
-            if info['id'] == '576665':
+            if info['id'] == '576719':
                 delivery_address = info["values"]['0']['value']
-        # check if info is already correct
-        current_info = await get_lead_by_id(lead_id)
-        current_goods = await get_custom_field_value(current_info, 577313)
-        current_delivery_type = await get_custom_field_value(current_info, 577315)
-        current_delivery_address = await get_custom_field_value(current_info, 577311)
+        if goods is not None or delivery_type is not None or delivery_address is not None:
+            # check if info is already correct
+            current_info = await get_lead_by_id(lead_id)
+            current_goods = await get_custom_field_value(current_info, 577313)
+            current_delivery_type = await get_custom_field_value(current_info, 577315)
+            current_delivery_address = await get_custom_field_value(current_info, 577311)
 
-        ## matching ignoring the spaces
-        is_goods_match = await normalize_text(current_goods) == await normalize_text(goods)
-        is_delivery_match = await normalize_text(current_delivery_type) == await normalize_text(delivery_type)
-        is_address_match = await normalize_text(current_delivery_address) == await normalize_text(delivery_address)
+            ## matching ignoring the spaces
+            is_goods_match = await normalize_text(current_goods) == await normalize_text(goods)
+            is_delivery_match = await normalize_text(current_delivery_type) == await normalize_text(delivery_type)
+            is_address_match = await normalize_text(current_delivery_address) == await normalize_text(delivery_address)
 
-        if is_goods_match and is_delivery_match and is_address_match:
-            print("MATCH: Data is identical (ignoring whitespace).")
-            return HTTP_200_OK
+            if is_goods_match and is_delivery_match and is_address_match:
+                logger.info("MATCH: Data is identical (ignoring whitespace).")
+                return HTTP_200_OK
+            else:
+                await add_info_from_ms(goods=goods, delivery_type=delivery_type, delivery_address=delivery_address, lead_id=lead_id)
+                logger.info("MISMATCH: Updating info...")
+                return HTTP_200_OK
         else:
-            await add_info_from_ms(goods=goods, delivery_type=delivery_type, delivery_address=delivery_address, lead_id=lead_id)
-            print("MISMATCH: Updating info...")
-            return HTTP_200_OK
+            logger.info(f'lead_id {lead_id}, nothing to update')
+    else:
+        logger.info(f'lead_id: {lead_id}, no Updates')
     return HTTP_200_OK
